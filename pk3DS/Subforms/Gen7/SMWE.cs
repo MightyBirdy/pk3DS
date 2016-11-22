@@ -597,7 +597,7 @@ namespace pk3DS
         // Randomization
         private void B_Randomize_Click(object sender, EventArgs e)
         {
-            if (Util.Prompt(MessageBoxButtons.YesNo, "Randomize all? Cannot undo.", "Double check Randomization settings @ Horde Tab.") != DialogResult.Yes) return;
+            if (Util.Prompt(MessageBoxButtons.YesNo, "Randomize all? Cannot undo.", "Double check Randomization settings.") != DialogResult.Yes) return;
 
             Enabled = false;
 
@@ -642,7 +642,7 @@ namespace pk3DS
                                     }
                                     encounter.Species = (uint)species;
                                 }
-                                encounter.Forme = (uint)GetRandomForme((int)encounter.Species);
+                                encounter.Forme = GetRandomForme((int)encounter.Species);
                             }
                         }
                     }
@@ -655,16 +655,16 @@ namespace pk3DS
             Util.Alert("Randomized!");
         }
 
-        public int GetRandomForme(int species)
+        public uint GetRandomForme(int species)
         {
             if (Main.SpeciesStat[species].FormeCount > 1)
             {
                 if (Legal.Mega_ORAS.Contains((ushort)species))
                     if (CHK_MegaForm.Checked)
-                        return (int) rnd32()%Main.SpeciesStat[species].FormeCount; // Slot-Random
+                        return (uint) (rnd32()%Main.SpeciesStat[species].FormeCount); // Slot-Random
                     else
                         return 0;
-                return (int)rnd32() % Main.SpeciesStat[species].FormeCount; // Slot-Random
+                return (uint)(rnd32() % Main.SpeciesStat[species].FormeCount); // Slot-Random
 
             }
             return 0;

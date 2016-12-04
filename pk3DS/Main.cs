@@ -526,17 +526,35 @@ namespace pk3DS
                         else if (Config.XY)
                             action = () => new XYWE().ShowDialog();
                         else return;
+
+                        fileGet(files, false);
+                        Invoke(action);
+                        fileSet(files);
                         break;
                     case 7:
+                        Invoke((MethodInvoker)delegate { Enabled = false; });
+                        threads++;
+
                         files = new [] { "encdata", "zonedata", "worlddata" };
-                        action = () => new SMWE().ShowDialog();
+                        updateStatus($"GARC Get: {files[0]}... ");
+                        var ed = Config.getlzGARCData(files[0]);
+                        updateStatus($"GARC Get: {files[1]}... ");
+                        var zd = Config.getlzGARCData(files[1]);
+                        updateStatus($"GARC Get: {files[2]}... ");
+                        var wd = Config.getlzGARCData(files[2]);
+                        updateStatus("Running SMWE... ");
+                        action = () => new SMWE(ed, zd, wd).ShowDialog();
+                        Invoke(action);
+
+                        updateStatus($"GARC Set: {files[0]}... ");
+                        ed.Save();
+                        resetStatus();
+                        threads--;
+                        Invoke((MethodInvoker)delegate { Enabled = true; });
                         break;
                     default:
                         return;
                 }
-                fileGet(files, false);
-                Invoke(action);
-                fileSet(files);
             }).Start();
         }
         private void B_OWSE_Click(object sender, EventArgs e)

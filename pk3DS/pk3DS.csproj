@@ -15,7 +15,7 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -4925,7 +4925,6 @@
     <None Include="Resources\img\slotView.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Game\empty.png" />
     <Content Include="Resources\img\Pokemon Sprites\empty.png" />
     <Content Include="Resources\img\sun.png" />
     <None Include="Resources\img\Pokemon Sprites\20-1.png" />

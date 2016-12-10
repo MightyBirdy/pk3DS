@@ -315,6 +315,7 @@ namespace pk3DS
                 RomFSPath = path;
                 Config = cfg;
                 TextFile.Config = cfg;
+                Randomizer.MaxSpeciesID = cfg.MaxSpeciesID;
                 return true;
             }
             RomFSPath = null;
@@ -479,6 +480,8 @@ namespace pk3DS
                 // Set Master Table back
                 for (int i = 0; i < d.Length - 1; i++)
                     d[i].CopyTo(d[d.Length-1], i * d[i].Length);
+
+                Config.GARCPersonal.Files = d;
                 Config.GARCPersonal.Save();
                 Config.InitializePersonal();
 

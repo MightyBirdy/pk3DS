@@ -193,6 +193,7 @@ namespace pk3DS
                 CB_ZItem.SelectedIndex = sm.SpecialZ_Item;
                 CB_ZBaseMove.SelectedIndex = sm.SpecialZ_BaseMove;
                 CB_ZMove.SelectedIndex = sm.SpecialZ_ZMove;
+                CHK_Variant.Checked = sm.LocalVariant;
             }
         }
         private void readEntry()
@@ -260,15 +261,11 @@ namespace pk3DS
             pkm.Height = (int)(h * 100);
             pkm.Weight = (int)(w * 10);
 
-            var tm = pkm.TMHM;
             for (int i = 0; i < CLB_TM.Items.Count; i++)
-                tm[i] = CLB_TM.GetItemChecked(i);
-            pkm.TMHM = tm;
+                pkm.TMHM[i] = CLB_TM.GetItemChecked(i);
 
-            var tt = pkm.TypeTutors;
             for (int t = 0; t < CLB_MoveTutors.Items.Count; t++)
-                tt[t] = CLB_MoveTutors.GetItemChecked(t);
-            pkm.TypeTutors = tt;
+                pkm.TypeTutors[t] = CLB_MoveTutors.GetItemChecked(t);
 
             if (Main.Config.SM)
             {
@@ -276,6 +273,7 @@ namespace pk3DS
                 sm.SpecialZ_Item = CB_ZItem.SelectedIndex;
                 sm.SpecialZ_BaseMove = CB_ZBaseMove.SelectedIndex;
                 sm.SpecialZ_ZMove = CB_ZMove.SelectedIndex;
+                sm.LocalVariant = CHK_Variant.Checked;
             }
         }
         private void saveEntry()

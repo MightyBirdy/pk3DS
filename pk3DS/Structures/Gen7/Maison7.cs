@@ -3,7 +3,7 @@ using System.IO;
 
 namespace pk3DS
 {
-    public class Maison6
+    public class Maison7
     {
         public class Trainer
         {
@@ -58,7 +58,7 @@ namespace pk3DS
             {
                 Species = BitConverter.ToUInt16(data, 0);
                 for (int i = 0; i < 4; i++)
-                    Moves[i] = BitConverter.ToUInt16(data, 2 + 2*i);
+                    Moves[i] = BitConverter.ToUInt16(data, 2 + 2 * i);
                 EV = data[0xA];
                 for (int i = 0; i < 6; i++)
                     EVs[i] = ((EV >> i) & 1) == 1;

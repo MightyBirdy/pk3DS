@@ -8,16 +8,16 @@ using System.Windows.Forms;
 
 namespace pk3DS
 {
-    public partial class MaisonEditor6 : Form
+    public partial class MaisonEditor7 : Form
     {
-        public MaisonEditor6(byte[][] trd, byte[][] trp, bool super)
+        public MaisonEditor7(byte[][] trd, byte[][] trp, bool royal)
         {
             trFiles = trd;
             pkFiles = trp;
             Array.Resize(ref specieslist, Main.Config.MaxSpeciesID);
             movelist[0] = specieslist[0] = itemlist[0] = "";
             
-            trNames = Main.getText(super ? TextName.SuperTrainerNames : TextName.MaisonTrainerNames); Array.Resize(ref trNames, trFiles.Length);
+            trNames = Main.getText(royal ? TextName.BattleRoyalNames : TextName.BattleTreeNames); Array.Resize(ref trNames, trFiles.Length);
 
             InitializeComponent();
             Setup();
@@ -69,7 +69,7 @@ namespace pk3DS
 
             // Get
             LB_Choices.Items.Clear();
-            Maison6.Trainer tr = new Maison6.Trainer(trFiles[trEntry]);
+            Maison7.Trainer tr = new Maison7.Trainer(trFiles[trEntry]);
 
             CB_Class.SelectedIndex = tr.Class;
             GB_Trainer.Enabled = tr.Count > 0;
@@ -81,7 +81,7 @@ namespace pk3DS
         {
             if (trEntry < 0 || !GB_Trainer.Enabled || dumping) return;
             // Gather
-            Maison6.Trainer tr = new Maison6.Trainer
+            Maison7.Trainer tr = new Maison7.Trainer
             {
                 Class = (ushort) CB_Class.SelectedIndex,
                 Count = (ushort) LB_Choices.Items.Count
@@ -95,7 +95,7 @@ namespace pk3DS
         private void getPokemon()
         {
             if (pkEntry < 0 || dumping) return;
-            Maison6.Pokemon pkm = new Maison6.Pokemon(pkFiles[pkEntry]);
+            Maison7.Pokemon pkm = new Maison7.Pokemon(pkFiles[pkEntry]);
 
             // Get
             CB_Move1.SelectedIndex = pkm.Moves[0];
@@ -110,6 +110,7 @@ namespace pk3DS
             CHK_SpD.Checked = pkm.SPD;
             CB_Nature.SelectedIndex = pkm.Nature;
             CB_Item.SelectedIndex = pkm.Item;
+            NUD_Form.Value = pkm.Form;
 
             CB_Species.SelectedIndex = pkm.Species; // Loaded last in order to refresh the sprite with all info.
             // Last 2 Bytes are unused.
@@ -119,7 +120,7 @@ namespace pk3DS
             if (pkEntry < 0 || dumping) return;
 
             // Each File is 16 Bytes.
-            Maison6.Pokemon pkm = new Maison6.Pokemon(pkFiles[pkEntry])
+            Maison7.Pokemon pkm = new Maison7.Pokemon(pkFiles[pkEntry])
             {
                 Species = (ushort) CB_Species.SelectedIndex,
                 HP = CHK_HP.Checked,
@@ -130,13 +131,11 @@ namespace pk3DS
                 SPD = CHK_SpD.Checked,
                 Nature = (byte) CB_Nature.SelectedIndex,
                 Item = (ushort) CB_Item.SelectedIndex,
-                Moves =
-                {
-                    [0] = (ushort) CB_Move1.SelectedIndex,
-                    [1] = (ushort) CB_Move2.SelectedIndex,
-                    [2] = (ushort) CB_Move3.SelectedIndex,
-                    [3] = (ushort) CB_Move4.SelectedIndex
-                }
+                Move1 = CB_Move1.SelectedIndex,
+                Move2 = CB_Move2.SelectedIndex,
+                Move3 = CB_Move3.SelectedIndex,
+                Move4 = CB_Move4.SelectedIndex,
+                Form = (ushort)NUD_Form.Value,
             };
 
             byte[] data = pkm.Write();
@@ -145,7 +144,7 @@ namespace pk3DS
 
         private void changeSpecies(object sender, EventArgs e)
         {
-            PB_PKM.Image = Util.getSprite(CB_Species.SelectedIndex, 0, 0, CB_Item.SelectedIndex);
+            PB_PKM.Image = Util.getSprite(CB_Species.SelectedIndex, (int)NUD_Form.Value, 0, CB_Item.SelectedIndex);
         }
 
         private void B_Remove_Click(object sender, EventArgs e)
@@ -220,11 +219,12 @@ namespace pk3DS
         }
         private void B_DumpPKs_Click(object sender, EventArgs e)
         {
+            //File.WriteAllBytes("maiz", pkFiles.SelectMany(t => t).ToArray());
             string[] stats = {"HP", "ATK", "DEF", "Spe", "SpA", "SpD"};
             string result = "";
             for (int i = 0; i < pkFiles.Length; i++)
             {
-                var pk = new Maison6.Pokemon(pkFiles[i]);
+                var pk = new Maison7.Pokemon(pkFiles[i]);
                 if (pk.Species == 0)
                     continue;
 
@@ -241,13 +241,16 @@ namespace pk3DS
                 var EVstr = string.Join(",", pk.EVs.Select((iv, x) => iv ? stats[x] : string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)));
                 result += $"EV'd in: {(pk.EVs.Any() ? EVstr : "None")}" + Environment.NewLine;
 
+                if (pk.Form > 0)
+                    result += $"Form: {pk.Form}" + Environment.NewLine;
+
                 result += Environment.NewLine;
             }
             SaveFileDialog sfd = new SaveFileDialog {FileName = "Maison Pokemon.txt", Filter = "Text File|*.txt"};
 
             if (sfd.ShowDialog() != DialogResult.OK)
                 return;
-
+            
             File.WriteAllText(sfd.FileName, result, Encoding.Unicode);
         }
     }

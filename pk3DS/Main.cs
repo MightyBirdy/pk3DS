@@ -156,7 +156,7 @@ namespace pk3DS
                 }
                 else
                 {
-                    DialogResult dr = Util.Prompt(MessageBoxButtons.YesNo, "Unpack sub-files?", "Cancel: Abort");
+                    DialogResult dr = Util.Prompt(MessageBoxButtons.YesNoCancel, "Unpack sub-files?", "Cancel: Abort");
                     if (dr == DialogResult.Cancel)
                         return;
                     bool recurse = dr == DialogResult.Yes;
@@ -303,12 +303,14 @@ namespace pk3DS
             // Check to see if the folder is romfs
             if (fi.Name == "a")
             {
-                var cfg = checkGameType(Directory.GetFiles(path, "*", SearchOption.AllDirectories));
+                string[] files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
+                var cfg = checkGameType(files);
 
                 if (cfg == null)
                 {
                     RomFSPath = null;
                     Config = null;
+                    Util.Error("File count does not match expected game count.", "Files: " + files.Length);
                     return false;
                 }
 
@@ -318,6 +320,7 @@ namespace pk3DS
                 Randomizer.MaxSpeciesID = cfg.MaxSpeciesID;
                 return true;
             }
+            Util.Error("Folder does not contain an 'a' folder in the top level.");
             RomFSPath = null;
             return false;
         }
@@ -796,7 +799,7 @@ namespace pk3DS
             {
                 string GARC = Config.getGARCFileName(toEdit);
                 updateStatus($"GARC Set: {toEdit} @ {GARC}... ");
-                threadSet(Path.Combine(RomFSPath, GARC), toEdit);
+                threadSet(Path.Combine(RomFSPath, GARC), toEdit, 4); // 4 bytes for Gen6
                 while (threads > 0) Thread.Sleep(50);
                 if (!keep && Directory.Exists(toEdit)) Directory.Delete(toEdit, true);
                 resetStatus();
@@ -1141,14 +1144,14 @@ namespace pk3DS
             }
             catch (Exception e) { Util.Error("Could not get the GARC:", e.ToString()); threads--; return false; }
         }
-        private bool setGARC(string outfile, string infolder, bool PB)
+        private bool setGARC(string outfile, string infolder, int padBytes, bool PB)
         {
             if (skipBoth || (ModifierKeys == Keys.Control && Util.Prompt(MessageBoxButtons.YesNo, "Cancel writing data back to GARC?") == DialogResult.Yes))
             { threads--; updateStatus("Aborted!", false); return false; }
 
             try
             {
-                bool success = CTR.GARC.garcPackMS(infolder, outfile, Config.GARCVersion, PB ? pBar1 : null, null, true);
+                bool success = CTR.GARC.garcPackMS(infolder, outfile, Config.GARCVersion, padBytes, PB ? pBar1 : null, null, true);
                 threads--;
                 updateStatus(string.Format(success ? "Success!" : "Failed!"), false);
                 return success;
@@ -1162,10 +1165,10 @@ namespace pk3DS
                 catch { }
             new Thread(() => getGARC(infile, outfolder, PB, bypassExt)).Start();
         }
-        private void threadSet(string outfile, string infolder, bool PB = true)
+        private void threadSet(string outfile, string infolder, int padBytes, bool PB = true)
         {
             threads++;
-            new Thread(() => setGARC(outfile, infolder, PB)).Start();
+            new Thread(() => setGARC(outfile, infolder, padBytes, PB)).Start();
         }
 
         private static void backupGARCs(bool overwrite, params string[] g)
@@ -1197,7 +1200,7 @@ namespace pk3DS
         // Text Requests
         internal static string[] getText(TextName file)
         {
-            return Config.GameTextStrings[Config.getGameText(file).Index];
+            return (string[])Config.GameTextStrings[Config.getGameText(file).Index].Clone();
         }
         internal static bool setText(TextName file, string[] strings)
         {

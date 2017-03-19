@@ -66,7 +66,7 @@ namespace pk3DS
         public string[] tutor3 = { "Bind", "Snore", "Knock Off", "Synthesis", "Heat Wave", "Role Play", "Heal Bell", "Tailwind", "Sky Attack", "Pain Split", "Giga Drain", "Drain Punch", "Air Cutter", "Focus Punch", "Shock Wave", "Water Pulse" };
         public string[] tutor4 = { "Gastro Acid", "Worry Seed", "Spite", "After You", "Helping Hand", "Trick", "Magic Room", "Wonder Room", "Endeavor", "Outrage", "Recycle", "Snatch", "Stealth Rock", "Sleep Talk", "Skill Swap" };
         */
-        public ushort[] tutormoves = { 338, 307, 308, 520, 519, 518, 434, 620 };
+        public ushort[] tutormoves = { 520, 519, 518, 338, 307, 308, 434, 620 };
         public ushort[] tutor1 = { 450, 343, 162, 530, 324, 442, 402, 529, 340, 67, 441, 253, 9, 7, 8 };
         public ushort[] tutor2 = { 277, 335, 414, 492, 356, 393, 334, 387, 276, 527, 196, 401, 399, 428, 406, 304, 231 };
         public ushort[] tutor3 = { 20, 173, 282, 235, 257, 272, 215, 366, 143, 220, 202, 409, 314, 264, 351, 352 };
@@ -257,6 +257,7 @@ namespace pk3DS
             int[] specForm = { s, f };
             string filename = "_" + specForm[0] + (CB_Species.SelectedIndex > 721 ? "_" + (specForm[1] + 1) : "");
             Bitmap rawImg = (Bitmap)Resources.ResourceManager.GetObject(filename);
+            if (rawImg == null) rawImg = Resources.unknown;
             Bitmap bigImg = new Bitmap(rawImg.Width * 2, rawImg.Height * 2);
             for (int x = 0; x < rawImg.Width; x++)
             {

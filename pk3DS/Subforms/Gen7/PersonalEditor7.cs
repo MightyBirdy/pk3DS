@@ -407,6 +407,9 @@ namespace pk3DS
                     : "Egg Group: {0}", CB_EggGroup1.Text, CB_EggGroup2.Text));
                 lines.Add($"Hatch Cycles: {TB_HatchCycles.Text}");
                 lines.Add($"Height: {TB_Height.Text} m, Weight: {TB_Weight.Text} kg, Color: {CB_Color.Text}");
+                
+                if (CLB_TM.SelectedIndex > 0)
+                    lines.Add($"{CLB_TM.Text}");
 
                 if (CB_ZBaseMove.SelectedIndex > 0)
                     lines.Add($"{CB_ZBaseMove.Text} + {CB_ZItem.Text} => {CB_ZMove.Text}");

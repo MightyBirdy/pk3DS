@@ -6,6 +6,9 @@ using System.Media;
 using System.Text;
 using System.Windows.Forms;
 
+using pk3DS.Core;
+using pk3DS.Core.Structures;
+
 namespace pk3DS
 {
     public partial class MaisonEditor7 : Form
@@ -14,10 +17,10 @@ namespace pk3DS
         {
             trFiles = trd;
             pkFiles = trp;
-            Array.Resize(ref specieslist, Main.Config.MaxSpeciesID);
+            Array.Resize(ref specieslist, Main.Config.MaxSpeciesID + 1);
             movelist[0] = specieslist[0] = itemlist[0] = "";
             
-            trNames = Main.getText(royal ? TextName.BattleRoyalNames : TextName.BattleTreeNames); Array.Resize(ref trNames, trFiles.Length);
+            trNames = Main.Config.getText(royal ? TextName.BattleRoyalNames : TextName.BattleTreeNames); Array.Resize(ref trNames, trFiles.Length);
 
             InitializeComponent();
             Setup();
@@ -26,17 +29,19 @@ namespace pk3DS
         private readonly byte[][] trFiles;
         private readonly string[] trNames;
         private readonly byte[][] pkFiles;
-        private readonly string[] natures = Main.getText(TextName.Natures);
-        private readonly string[] movelist = Main.getText(TextName.MoveNames);
-        private readonly string[] specieslist = Main.getText(TextName.SpeciesNames);
-        private readonly string[] trClass = Main.getText(TextName.TrainerClasses);
-        private readonly string[] itemlist = Main.getText(TextName.ItemNames);
+        private readonly string[] natures = Main.Config.getText(TextName.Natures);
+        private readonly string[] movelist = Main.Config.getText(TextName.MoveNames);
+        private readonly string[] specieslist = Main.Config.getText(TextName.SpeciesNames);
+        private readonly string[] trClass = Main.Config.getText(TextName.TrainerClasses);
+        private readonly string[] itemlist = Main.Config.getText(TextName.ItemNames);
         private int trEntry = -1;
         private int pkEntry = -1;
         private bool dumping;
+
         private void Setup()
         {
-            foreach (string s in trClass) CB_Class.Items.Add(s);
+            for (int i = 0; i < trClass.Length; i++)
+                CB_Class.Items.Add($"{trClass[i]} - {i:000}");
             foreach (string s in specieslist) CB_Species.Items.Add(s);
             foreach (string s in movelist) CB_Move1.Items.Add(s);
             foreach (string s in movelist) CB_Move2.Items.Add(s);
@@ -44,11 +49,13 @@ namespace pk3DS
             foreach (string s in movelist) CB_Move4.Items.Add(s);
             foreach (string s in natures) CB_Nature.Items.Add(s);
             foreach (string s in itemlist) CB_Item.Items.Add(s);
-            foreach (string s in trNames) CB_Trainer.Items.Add(s ?? "UNKNOWN");
+            for (int i = 0; i < trNames.Length; i++)
+                CB_Trainer.Items.Add($"{trNames[i] ?? "UNKNOWN"} - {i:000}");
             for (int i = 0; i < pkFiles.Length; i++) CB_Pokemon.Items.Add(i.ToString());
 
             CB_Trainer.SelectedIndex = 1;
         }
+
         private void changeTrainer(object sender, EventArgs e)
         {
             setTrainer();
@@ -57,12 +64,14 @@ namespace pk3DS
             if (GB_Trainer.Enabled)
                 LB_Choices.SelectedIndex = 0;
         }
+
         private void changePokemon(object sender, EventArgs e)
         {
             setPokemon();
             pkEntry = CB_Pokemon.SelectedIndex;
             getPokemon();
         }
+
         private void getTrainer()
         {
             if (trEntry < 0) return;
@@ -77,6 +86,7 @@ namespace pk3DS
             foreach (ushort Entry in tr.Choices)
                 LB_Choices.Items.Add(Entry.ToString());
         }
+
         private void setTrainer()
         {
             if (trEntry < 0 || !GB_Trainer.Enabled || dumping) return;
@@ -92,6 +102,7 @@ namespace pk3DS
             Array.Sort(tr.Choices);
             trFiles[trEntry] = tr.Write();
         }
+
         private void getPokemon()
         {
             if (pkEntry < 0 || dumping) return;
@@ -115,6 +126,7 @@ namespace pk3DS
             CB_Species.SelectedIndex = pkm.Species; // Loaded last in order to refresh the sprite with all info.
             // Last 2 Bytes are unused.
         }
+
         private void setPokemon()
         {
             if (pkEntry < 0 || dumping) return;
@@ -144,7 +156,7 @@ namespace pk3DS
 
         private void changeSpecies(object sender, EventArgs e)
         {
-            PB_PKM.Image = Util.getSprite(CB_Species.SelectedIndex, (int)NUD_Form.Value, 0, CB_Item.SelectedIndex);
+            PB_PKM.Image = WinFormsUtil.getSprite(CB_Species.SelectedIndex, (int)NUD_Form.Value, 0, CB_Item.SelectedIndex, Main.Config);
         }
 
         private void B_Remove_Click(object sender, EventArgs e)
@@ -152,6 +164,7 @@ namespace pk3DS
             if (LB_Choices.SelectedIndex > -1 && GB_Trainer.Enabled)
                 LB_Choices.Items.RemoveAt(LB_Choices.SelectedIndex);
         }
+
         private void B_Set_Click(object sender, EventArgs e)
         {
             if (LB_Choices.SelectedIndex <= -1 || !GB_Trainer.Enabled) return;
@@ -176,6 +189,7 @@ namespace pk3DS
             // Set current index to the one just added.
             LB_Choices.SelectedIndex = Array.IndexOf(choiceList, toAdd);
         }
+
         private void B_View_Click(object sender, EventArgs e)
         {
             if (LB_Choices.SelectedIndex > -1 && GB_Trainer.Enabled)
@@ -217,6 +231,7 @@ namespace pk3DS
             dumping = false;
             CB_Trainer.SelectedIndex = 0;
         }
+
         private void B_DumpPKs_Click(object sender, EventArgs e)
         {
             //File.WriteAllBytes("maiz", pkFiles.SelectMany(t => t).ToArray());
@@ -239,7 +254,7 @@ namespace pk3DS
                 result += $"Move 4: {movelist[pk.Move4]}" + Environment.NewLine;
 
                 var EVstr = string.Join(",", pk.EVs.Select((iv, x) => iv ? stats[x] : string.Empty).Where(x => !string.IsNullOrWhiteSpace(x)));
-                result += $"EV'd in: {(pk.EVs.Any() ? EVstr : "None")}" + Environment.NewLine;
+                result += $"EV'd in: {(pk.EVs.Length > 0 ? EVstr : "None")}" + Environment.NewLine;
 
                 if (pk.Form > 0)
                     result += $"Form: {pk.Form}" + Environment.NewLine;

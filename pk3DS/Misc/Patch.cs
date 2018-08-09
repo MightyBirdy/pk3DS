@@ -62,6 +62,7 @@ namespace pk3DS
             File.WriteAllText(outPath ?? path, text, Encoding.Unicode);
             return true;
         }
+
         internal static string exportGARCs(string[] garcPaths, string[] newPaths, string parentRomFS, string patchFolder)
         {
             // Stuff files into new patch folder
@@ -104,11 +105,11 @@ namespace pk3DS
                 if (!patchExeFS(ExeFS, garcPaths, newPaths, oldROM, newROM, ref result, Path.Combine(patchFolder, ".code.bin")))
                     throw new Exception(result);
 
-                Util.Alert("Patch contents saved to:" + Environment.NewLine + exportGARCs(garcPaths, newPaths, Main.RomFSPath, patchFolder), result);
+                WinFormsUtil.Alert("Patch contents saved to:" + Environment.NewLine + exportGARCs(garcPaths, newPaths, Main.RomFSPath, patchFolder), result);
             }
             catch (Exception ex)
-            { 
-                Util.Error("Could not create patch:", ex.ToString());
+            {
+                WinFormsUtil.Error("Could not create patch:", ex.ToString());
                 if (Directory.Exists(patchFolder)) Directory.Delete(patchFolder, true);
             }
         }
@@ -127,6 +128,7 @@ namespace pk3DS
             sc.CopyTo(garcs, 0);
             return garcs.Distinct().ToArray();
         }
+
         private string[] getPaths(string[] sc)
         {
             bool languages = CHK_Lang.Checked;
@@ -148,6 +150,7 @@ namespace pk3DS
             for (int i = 0; i < CHKLB_GARCs.Items.Count; i++)
                 CHKLB_GARCs.SetItemChecked(i, true);
         }
+
         private void B_CheckNone_Click(object sender, EventArgs e)
         {
             for (int i = 0; i < CHKLB_GARCs.Items.Count; i++)

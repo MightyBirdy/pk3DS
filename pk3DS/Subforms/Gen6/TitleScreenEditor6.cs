@@ -1,15 +1,18 @@
-﻿using System;
+﻿using pk3DS.Core.CTR;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using pk3DS.Core;
 
 namespace pk3DS
 {
-    public partial class TitleScreenEditor6 : Form
+    public sealed partial class TitleScreenEditor6 : Form
     {
         private readonly bool compressed = Main.Config.ORAS;
+
         public TitleScreenEditor6()
         {
             InitializeComponent();
@@ -42,7 +45,7 @@ namespace pk3DS
             for (int i = 0; i < darcs.Length/2; i++)
                 CB_DARC.Items.Add($"{games[0]} - {languages[i]}");
             for (int i = darcs.Length/2; i < darcs.Length; i++)
-                CB_DARC.Items.Add($"{games[1]} - {languages[i - darcs.Length/2]}");
+                CB_DARC.Items.Add($"{games[1]} - {languages[i - (darcs.Length/2)]}");
 
             // Load darcs
             for (int i = 0; i < darcs.Length; i++)
@@ -50,7 +53,7 @@ namespace pk3DS
                 // Get DARC name and assign the decompressed name
                 usedFiles[i] = "titlescreen\\" + (compressed ? "dec_" : "") + Path.GetFileName(files[darcFiles[i]]);
                 if (compressed) // Decompress file (XY does not compress)
-                    CTR.LZSS.Decompress(files[darcFiles[i]], usedFiles[i]);
+                    LZSS.Decompress(files[darcFiles[i]], usedFiles[i]);
                 // Read decompressed file
                 var data = File.ReadAllBytes(usedFiles[i]);
 
@@ -63,13 +66,14 @@ namespace pk3DS
                         throw new Exception("Invalid DARC?\n\n" + usedFiles[i]);
                 }
                 var darcData = data.Skip(pos).ToArray();
-                darcs[i] = new CTR.DARC(darcData);
+                darcs[i] = new DARC(darcData);
             }
 
             CB_DARC.SelectedIndex = CB_DARC.Items.Count - 1; // last (english game2)
         }
+
         private readonly string[] files = Directory.GetFiles("titlescreen");
-        private readonly CTR.DARC[] darcs = new CTR.DARC[2 * (Main.Config.ORAS ? 8 : 7)];
+        private readonly DARC[] darcs = new DARC[2 * (Main.Config.ORAS ? 8 : 7)];
         private readonly string[] usedFiles = new string[2 * (Main.Config.ORAS ? 8 : 7)];
 
         private readonly int[] darcFiles = Main.Config.ORAS 
@@ -112,18 +116,8 @@ namespace pk3DS
 
             // Load file
             byte[] data = darc.Data.Skip((int)(darc.Entries[entry].DataOffset - darc.Header.FileDataOffset)).Take((int)darc.Entries[entry].DataLength).ToArray();
-            CTR.BCLIM.CLIM bclim = CTR.BCLIM.analyze(data, filename);
-            Image img = CTR.BCLIM.getIMG(bclim);
-
-            Rectangle cropRect = new Rectangle(0, 0, bclim.Width, bclim.Height);
-            Bitmap CropBMP = new Bitmap(cropRect.Width, cropRect.Height);
-            using (Graphics g = Graphics.FromImage(CropBMP))
-            {
-                g.DrawImage(img,
-                            new Rectangle(0, 0, CropBMP.Width, CropBMP.Height),
-                            cropRect,
-                            GraphicsUnit.Pixel);
-            }
+            BCLIM bclim = BCLIM.analyze(data, filename);
+            Image CropBMP = bclim.GetBitmap();
 
             PB_Image.Image = CropBMP;
             // store image locally for saving if need be
@@ -131,20 +125,22 @@ namespace pk3DS
 
             L_Dimensions.Text = $"Dimensions: {PB_Image.Width}w && {PB_Image.Height}h";
         }
+
         private byte[] currentBytes;
+
         private void insertFile(string path)
         {
-            if (DialogResult.Yes != Util.Prompt(MessageBoxButtons.YesNo, "Overwrite image?"))
+            if (DialogResult.Yes != WinFormsUtil.Prompt(MessageBoxButtons.YesNo, "Overwrite image?"))
                 return;
             byte[] data = File.ReadAllBytes(path);
             byte[] bclim;
 
             if (Path.GetExtension(path) == ".bclim") // bclim opened
             {
-                var img = CTR.BCLIM.analyze(data, path);
+                var img = BCLIM.analyze(data, path);
                 if (img.Width != PB_Image.Width || img.Height != PB_Image.Height)
                 {
-                    Util.Alert("Image sizes do not match.",
+                    WinFormsUtil.Alert("Image sizes do not match.",
                         $"Width: {img.Width} - {PB_Image.Width}\nHeight: {img.Height} - {PB_Image.Height}");
                     return;
                 }
@@ -157,11 +153,11 @@ namespace pk3DS
                     Image img = Image.FromStream(BitmapStream);
                     if (img.Width != PB_Image.Width || img.Height != PB_Image.Height)
                     {
-                        Util.Alert("Image sizes do not match.",
+                        WinFormsUtil.Alert("Image sizes do not match.",
                             $"Width: {img.Width} - {PB_Image.Width}\nHeight: {img.Height} - {PB_Image.Height}");
                         return;
                     }
-                    bclim = CTR.BCLIM.IMGToBCLIM(img, '9');
+                    bclim = BCLIM.IMGToBCLIM(img, '9');
                 }
             }
 
@@ -177,7 +173,7 @@ namespace pk3DS
                 }
             if (entry < 0) throw new Exception("File not found!?");
 
-            CTR.DARC.insertFile(ref darc, entry, bclim);
+            DARC.insertFile(ref darc, entry, bclim);
             darcs[CB_DARC.SelectedIndex] = darc;
 
             // Trigger reloading of the image
@@ -189,6 +185,7 @@ namespace pk3DS
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
         }
+
         private void tabMain_DragDrop(object sender, DragEventArgs e)
         {
             string path = ((string[])e.Data.GetData(DataFormats.FileDrop))[0]; // open first D&D
@@ -198,7 +195,7 @@ namespace pk3DS
         private void formClosing(object sender, FormClosingEventArgs e)
         {
             if (compressed)
-                Util.Alert("Recompressing may take some time...", "Don't panic if the Progress Bar doesn't move!");
+                WinFormsUtil.Alert("Recompressing may take some time...", "Don't panic if the Progress Bar doesn't move!");
             // Write darcs
             for (int i = 0; i < darcs.Length; i++)
             {
@@ -210,7 +207,7 @@ namespace pk3DS
                     if (pos >= data.Length) return;
                 }
                 byte[] preData = data.Take(pos).ToArray();
-                byte[] darcData = CTR.DARC.setDARC(darcs[i]);
+                byte[] darcData = DARC.setDARC(darcs[i]);
                 byte[] newData = preData.Concat(darcData).ToArray();
 
                 byte[] oldDarc = File.ReadAllBytes(usedFiles[i]);
@@ -253,6 +250,7 @@ namespace pk3DS
                 }
             }
         }
+
         private void clickOpen(object sender, EventArgs e)
         {
             var ofd = new OpenFileDialog
@@ -267,7 +265,7 @@ namespace pk3DS
 
         private void PB_Image_Click(object sender, EventArgs e)
         {
-            if (ModifierKeys == Keys.Control && Util.Prompt(MessageBoxButtons.YesNo, "Copy image to clipboard?") == DialogResult.Yes)
+            if (ModifierKeys == Keys.Control && WinFormsUtil.Prompt(MessageBoxButtons.YesNo, "Copy image to clipboard?") == DialogResult.Yes)
                 Clipboard.SetImage(PB_Image.BackgroundImage);
             else if (PB_Image.BackColor == Color.Transparent)
                 PB_Image.BackColor = Color.GreenYellow;

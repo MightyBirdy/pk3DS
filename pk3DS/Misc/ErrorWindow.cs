@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
@@ -35,7 +30,7 @@ namespace pk3DS
 
         public ErrorWindow(string lang) : this()
         {
-            Util.TranslateInterface(this, lang);
+            WinFormsUtil.TranslateInterface(this, lang);
         }
 
         /// <summary>
@@ -84,6 +79,7 @@ namespace pk3DS
                 UpdateExceptionDetailsMessage();
             }
         }
+
         private Exception _error;
 
         private void UpdateExceptionDetailsMessage()
@@ -134,6 +130,5 @@ namespace pk3DS
             DialogResult = DialogResult.Abort;
             Close();
         }
-
     }
 }

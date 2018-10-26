@@ -25,15 +25,17 @@ namespace pk3DS
         private readonly string[] MoveCategories = { "Status", "Physical", "Special", };
         private readonly string[] StatCategories = { "None", "Attack", "Defense", "Special Attack", "Special Defense", "Speed", "Accuracy", "Evasion", "All", };
 
-        private readonly string[] TargetingTypes =
-        { "Single Adjacent Ally/Foe",
+        private static readonly string[] TargetingTypes =
+        {
+            "Single Adjacent Ally/Foe",
             "Any Ally", "Any Adjacent Ally", "Single Adjacent Foe", "Everyone but User", "All Foes",
             "All Allies", "Self", "All Pokémon on Field", "Single Adjacent Foe (2)", "Entire Field",
             "Opponent's Field", "User's Field", "Self",
         };
 
-        private readonly string[] InflictionTypes =
-        { "None",
+        private static readonly string[] InflictionTypes =
+        {
+            "None",
             "Paralyze", "Sleep", "Freeze", "Burn", "Poison",
             "Confusion", "Attract", "Capture", "Nightmare", "Curse",
             "Taunt", "Torment", "Disable", "Yawn", "Heal Block",
@@ -41,24 +43,70 @@ namespace pk3DS
             "Ingrain", "??? 0x16", "??? 0x17", "Mute"
         };
 
-        private readonly string[] MoveQualities =
-        { "Only DMG",
+        private static readonly string[] MoveQualities =
+        {
+            "Only DMG",
             "No DMG -> Inflict Status", "No DMG -> -Target/+User Stat", "No DMG | Heal User", "DMG | Inflict Status", "No DMG | STATUS | +Target Stat",
             "DMG | -Target Stat", "DMG | +User Stat", "DMG | Absorbs DMG", "One-Hit KO", "Affects Whole Field",
-            "Affect One Side of the Field", "Forces Target to Switch", "Unique Effect",  };
+            "Affect One Side of the Field", "Forces Target to Switch", "Unique Effect",
+        };
+
+        private static readonly string[] ZMoveEffects =
+        {
+            "None",
+            "+1 Attack",
+            "+2 Attack",
+            "+3 Attack",
+            "+1 Defense",
+            "+2 Defense",
+            "+3 Defense",
+            "+1 Special Attack",
+            "+2 Special Attack",
+            "+3 Special Attack",
+            "+1 Special Defense",
+            "+2 Special Defense",
+            "+3 Special Defense",
+            "+1 Speed",
+            "+2 Speed",
+            "+3 Speed",
+            "+1 Accuracy",
+            "+2 Accuracy",
+            "+3 Accuracy",
+            "+1 Evasiveness",
+            "+2 Evasiveness",
+            "+3 Evasiveness",
+            "+1 to all (except Accuracy or Evasiveness)",
+            "+2 to all (except Accuracy or Evasiveness)",
+            "+3 to all (except Accuracy or Evasiveness)",
+            "raises critical-hit ratio two stages",
+            "resets lowered stats of the user",
+            "recovers all of user's HP",
+            "recovers all Hp of the Pokémon switching-in (Memento and Parting Shot)",
+            "makes the user the center of attention",
+            "only on Curse: recovers all HP if the user's a Ghost type, +1 Attack otherwise"
+        };
 
         private void Setup()
         {
-            foreach (string s in movelist) CB_Move.Items.Add(s);
-            foreach (string s in types) CB_Type.Items.Add(s);
-            foreach (string s in MoveCategories) CB_Category.Items.Add(s);
-            foreach (string s in StatCategories) CB_Stat1.Items.Add(s);
-            foreach (string s in StatCategories) CB_Stat2.Items.Add(s);
-            foreach (string s in StatCategories) CB_Stat3.Items.Add(s);
-            foreach (string s in TargetingTypes) CB_Targeting.Items.Add(s);
-            foreach (string s in MoveQualities) CB_Quality.Items.Add(s);
-            foreach (string s in InflictionTypes) CB_Inflict.Items.Add(s);
+            char[] ps = { 'P', 'S' }; // Distinguish Physical/Special Z-Moves
+            for (int i = 622; i < 658; i++)
+                movelist[i] += $" ({ps[i % 2]})";
+            CB_Move.Items.AddRange(movelist);
+            CB_Type.Items.AddRange(types);
+            CB_Category.Items.AddRange(MoveCategories);
+            CB_Stat1.Items.AddRange(StatCategories);
+            CB_Stat2.Items.AddRange(StatCategories);
+            CB_Stat3.Items.AddRange(StatCategories);
+            CB_Targeting.Items.AddRange(TargetingTypes);
+            CB_Quality.Items.AddRange(MoveQualities);
+            CB_Inflict.Items.AddRange(InflictionTypes);
+            CB_ZMove.Items.AddRange(movelist);
+            var flagnames = Enum.GetNames(typeof(MoveFlag7)).Skip(1).ToArray();
+            CLB_Flags.Items.AddRange(flagnames);
+            CB_ZEffect.Items.AddRange(ZMoveEffects);
             CB_Inflict.Items.Add("Special");
+            var refreshtypes = Enum.GetNames(typeof(RefreshType));
+            CB_AfflictRefresh.Items.AddRange(refreshtypes);
 
             CB_Move.Items.RemoveAt(0);
             CB_Move.SelectedIndex = 0;
@@ -68,7 +116,7 @@ namespace pk3DS
 
         private void ChangeEntry(object sender, EventArgs e)
         {
-            setEntry();
+            SetEntry();
             entry = Array.IndexOf(movelist, CB_Move.Text);
             GetEntry();
         }
@@ -112,19 +160,20 @@ namespace pk3DS
                 NUD_StatP2.Value = data[0x1C];
                 NUD_StatP3.Value = data[0x1D];
 
-                // Unknown (Bitflag Related for stuff like Contact and Extra Move Effects)
-                NUD_0x20.Value = data[0x20]; // 0x20
-                NUD_0x21.Value = data[0x21]; // 0x21
-                // end, the other bytes aren't used.
+                var move = new Move7(data);
+                CB_ZMove.SelectedIndex = move.ZMove;
+                NUD_ZPower.Value = move.ZPower;
+                CB_ZEffect.SelectedIndex = move.ZEffect;
+                CB_AfflictRefresh.SelectedIndex = (int)move.RefreshAfflictType;
+                NUD_RefreshAfflictPercent.Value = move.RefreshAfflictPercent;
 
-                //NUD_0x1E.Value = data[0x1E]; // 0x1E
-                //NUD_0x1F.Value = data[0x1F]; // 0x1F
-                //NUD_0x22.Value = data[0x22]; // 0x22
-                //NUD_0x23.Value = data[0x23]; // 0x23
+                var flags = (uint)move.Flags;
+                for (int i = 0; i < CLB_Flags.Items.Count; i++)
+                    CLB_Flags.SetItemChecked(i, ((flags >> i) & 1) == 1);
             }
         }
 
-        private void setEntry()
+        private void SetEntry()
         {
             if (entry < 1) return;
             byte[] data = files[entry];
@@ -159,22 +208,32 @@ namespace pk3DS
                 data[0x1C] = (byte)NUD_StatP2.Value;
                 data[0x1D] = (byte)NUD_StatP3.Value;
 
-                data[0x20] = (byte)NUD_0x20.Value;
-                data[0x21] = (byte)NUD_0x21.Value;
-                // end, the other bytes aren't used.
+                var move = new Move7(data)
+                {
+                    ZMove = CB_ZMove.SelectedIndex,
+                    ZPower = (int) NUD_ZPower.Value,
+                    ZEffect = CB_ZEffect.SelectedIndex,
+                    RefreshAfflictPercent = (int) NUD_RefreshAfflictPercent.Value,
+                    RefreshAfflictType = (RefreshType)CB_AfflictRefresh.SelectedIndex
+                };
+
+                uint flagval = 0;
+                for (int i = 0; i < CLB_Flags.Items.Count; i++)
+                    flagval |= CLB_Flags.GetItemChecked(i) ? 1u << i : 0;
+                move.Flags = (MoveFlag7) flagval;
             }
             files[entry] = data;
         }
 
         private void CloseForm(object sender, FormClosingEventArgs e)
         {
-            setEntry();
+            SetEntry();
             RandSettings.SetFormSettings(this, groupBox1.Controls);
         }
 
         private void B_Table_Click(object sender, EventArgs e)
         {
-            var items = files.Select(z => new Move(z));
+            var items = files.Select(z => new Move7(z));
             Clipboard.SetText(TableUtil.GetTable(items, movelist));
             System.Media.SystemSounds.Asterisk.Play();
         }

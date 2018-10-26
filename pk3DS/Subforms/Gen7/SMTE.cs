@@ -19,9 +19,10 @@ namespace pk3DS
         private readonly trdata7[] Trainers;
         private string[][] AltForms;
         private static int[] SpecialClasses;
-        private static int[] ImportantTrainers;
-        private static int[] FinalEvo;
-        private static int[] ReplaceLegend;
+        private static int[] ImportantTrainers = Main.Config.USUM ? Legal.ImportantTrainers_USUM : Legal.ImportantTrainers_SM;
+        private static int[] FinalEvo = Legal.FinalEvolutions_7;
+        private static int[] Legendary = Main.Config.USUM ? Legal.Legendary_USUM : Legal.Legendary_SM;
+        private static int[] Mythical = Main.Config.USUM ? Legal.Mythical_USUM : Legal.Mythical_SM;
         private static Dictionary<int, int[]> MegaDictionary;
         private int index = -1;
         private PictureBox[] pba;
@@ -38,7 +39,6 @@ namespace pk3DS
         private readonly string[] trClass = Main.Config.getText(TextName.TrainerClasses);
         private readonly TextData trText = Main.Config.getTextData(TextName.TrainerText);
         private readonly TextData TrainerNames;
-        
 
         public SMTE(byte[][] trc, byte[][] trd, byte[][] trp)
         {
@@ -58,12 +58,7 @@ namespace pk3DS
 
             CB_TrainerID.SelectedIndex = 0;
             CB_Moves.SelectedIndex = 0;
-            CHK_ReplaceLegend.Visible = Main.Config.USUM; // Team Rainbow Rocket only in USUM
             MegaDictionary = GiftEditor6.GetMegaDictionary(Main.Config);
-            
-            ImportantTrainers = Main.Config.USUM ? Legal.ImportantTrainers_USUM : Legal.ImportantTrainers_SM;
-            FinalEvo = Main.Config.USUM ? Legal.FinalEvolutions_USUM : Legal.FinalEvolutions_SM;
-            ReplaceLegend = Legal.Legendary_Mythical_USUM;
 
             if (CHK_RandomClass.Checked)
             {
@@ -633,6 +628,10 @@ namespace pk3DS
             };
             rnd.Initialize();
 
+            // add Legendary/Mythical to final evolutions if checked
+            if (CHK_L.Checked) FinalEvo = FinalEvo.Concat(Legendary).ToArray();
+            if (CHK_E.Checked) FinalEvo = FinalEvo.Concat(Mythical).ToArray();
+
             var banned = new List<int>(new[] { 165, 621, 464 }.Concat(Legal.Z_Moves)); // Struggle, Hyperspace Fury, Dark Void
             if (CHK_NoFixedDamage.Checked)
                 banned.AddRange(MoveRandomizer.FixedDamageMoves);
@@ -726,15 +725,6 @@ namespace pk3DS
                             pk.Item = mega[Util.rand.Next(0, mega.Length)];
                             pk.Form = 0; // allow it to Mega Evolve naturally
                         }
-
-                        // replaces Team Rainbow Rocket Legendaries with another Legendary
-                        else if (CHK_ReplaceLegend.Checked && ReplaceLegend.Contains(pk.Species))
-                        {
-                            int randLegend() => (int)(Util.rnd32() % ReplaceLegend.Length);
-                            pk.Species = ReplaceLegend[randLegend()];
-                            pk.Item = items[Util.rnd32() % items.Length];
-                            pk.Form = Randomizer.GetRandomForme(pk.Species, CHK_RandomMegaForm.Checked, true, Main.SpeciesStat);
-                        }
                         
                         // every other pkm
                         else
@@ -742,13 +732,6 @@ namespace pk3DS
                             pk.Species = rnd.GetRandomSpeciesType(pk.Species, Type);
                             pk.Item = items[Util.rnd32() % items.Length];
                             pk.Form = Randomizer.GetRandomForme(pk.Species, CHK_RandomMegaForm.Checked, true, Main.SpeciesStat);
-                        }
-
-                        // lazy fix for USUM-only species
-                        if (Main.Config.SM && pk.Species > 802)
-                        {
-                            pk.Species = 1;
-                            pk.Form = 0;
                         }
 
                         pk.Gender = 0; // random
@@ -762,6 +745,8 @@ namespace pk3DS
                         pk.Ability = (int)Util.rnd32() % 4;
                     if (CHK_MaxDiffPKM.Checked)
                         pk.IVs = new[] {31, 31, 31, 31, 31, 31};
+                    if (CHK_MaxAI.Checked)
+                        tr.AI |= 7;
                     
                     if (CHK_ForceFullyEvolved.Checked && pk.Level >= NUD_ForceFullyEvolved.Value && !FinalEvo.Contains(pk.Species))
                     {

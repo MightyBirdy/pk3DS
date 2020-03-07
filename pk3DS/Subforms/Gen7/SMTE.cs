@@ -19,13 +19,14 @@ namespace pk3DS
         private readonly trdata7[] Trainers;
         private string[][] AltForms;
         private static int[] SpecialClasses;
-        private static int[] ImportantTrainers = Main.Config.USUM ? Legal.ImportantTrainers_USUM : Legal.ImportantTrainers_SM;
+        private static readonly int[] ImportantTrainers = Main.Config.USUM ? Legal.ImportantTrainers_USUM : Legal.ImportantTrainers_SM;
         private static int[] FinalEvo = Legal.FinalEvolutions_7;
-        private static int[] Legendary = Main.Config.USUM ? Legal.Legendary_USUM : Legal.Legendary_SM;
-        private static int[] Mythical = Main.Config.USUM ? Legal.Mythical_USUM : Legal.Mythical_SM;
+        private static readonly int[] Legendary = Main.Config.USUM ? Legal.Legendary_USUM : Legal.Legendary_SM;
+        private static readonly int[] Mythical = Main.Config.USUM ? Legal.Mythical_USUM : Legal.Mythical_SM;
         private static Dictionary<int, int[]> MegaDictionary;
         private int index = -1;
         private PictureBox[] pba;
+        private CheckBox[] AIBits;
 
         private readonly byte[][] trclass, trdata, trpoke;
         private readonly string[] abilitylist = Main.Config.getText(TextName.AbilityNames);
@@ -93,7 +94,7 @@ namespace pk3DS
             int slot = GetSlot(sender);
             if (pba[slot].Image == null)
             { SystemSounds.Exclamation.Play(); return; }
-            
+
             // Load the PKM
             var pk = Trainers[index].Pokemon[slot];
             if (pk.Species != 0)
@@ -104,7 +105,9 @@ namespace pk3DS
                 GetSlotColor(slot, Properties.Resources.slotView);
             }
             else
+            {
                 SystemSounds.Exclamation.Play();
+            }
         }
 
         private void ClickSet(object sender, EventArgs e)
@@ -116,7 +119,9 @@ namespace pk3DS
             var pk = PrepareTP7();
             var tr = Trainers[index];
             if (slot < tr.NumPokemon)
+            {
                 tr.Pokemon[slot] = pk;
+            }
             else
             {
                 tr.Pokemon.Add(pk);
@@ -203,7 +208,7 @@ namespace pk3DS
 
         private void Setup()
         {
-            AltForms = forms.Select(f => Enumerable.Range(0, 100).Select(i => i.ToString()).ToArray()).ToArray();
+            AltForms = forms.Select(_ => Enumerable.Range(0, 100).Select(i => i.ToString()).ToArray()).ToArray();
             CB_TrainerID.Items.Clear();
             for (int i = 0; i < trdata.Length; i++)
                 CB_TrainerID.Items.Add(GetEntryTitle(trName[i] ?? "UNKNOWN", i));
@@ -225,8 +230,9 @@ namespace pk3DS
 
             specieslist[0] = "---";
             abilitylist[0] = itemlist[0] = movelist[0] = "(None)";
-            pba = new[] { PB_Team1, PB_Team2, PB_Team3, PB_Team4, PB_Team5, PB_Team6 };
-            
+            pba = new[] {PB_Team1, PB_Team2, PB_Team3, PB_Team4, PB_Team5, PB_Team6};
+            AIBits = new[] {CHK_AI0, CHK_AI1, CHK_AI2, CHK_AI3, CHK_AI4, CHK_AI5, CHK_AI6, CHK_AI7};
+
             CB_Species.Items.Clear();
             foreach (string s in specieslist)
                 CB_Species.Items.Add(s);
@@ -252,7 +258,7 @@ namespace pk3DS
             CB_Item.Items.Clear();
             foreach (string s in itemlist)
                 CB_Item.Items.Add(s);
-                
+
             CB_Gender.Items.Clear();
             CB_Gender.Items.Add("- / Genderless/Random");
             CB_Gender.Items.Add("♂ / Male");
@@ -406,7 +412,8 @@ namespace pk3DS
             CB_Item_3.SelectedIndex = tr.Item3;
             CB_Item_4.SelectedIndex = tr.Item4;
             CB_Money.SelectedIndex = tr.Money;
-            NUD_AI.Value = tr.AI;
+            CB_Mode.SelectedIndex = (int)tr.Mode;
+            LoadAIBits((uint)tr.AI);
             CHK_Flag.Checked = tr.Flag;
             PopulateTeam(tr);
         }
@@ -420,8 +427,23 @@ namespace pk3DS
             tr.Item3 = CB_Item_3.SelectedIndex;
             tr.Item4 = CB_Item_4.SelectedIndex;
             tr.Money = CB_Money.SelectedIndex;
-            tr.AI = (int)NUD_AI.Value;
+            tr.Mode = (BattleMode)CB_Mode.SelectedIndex;
+            tr.AI = (int)SaveAIBits();
             tr.Flag = CHK_Flag.Checked;
+        }
+
+        private void LoadAIBits(uint val)
+        {
+            for (int i = 0; i < AIBits.Length; i++)
+                AIBits[i].Checked = ((val >> i) & 1) == 1;
+        }
+
+        private uint SaveAIBits()
+        {
+            uint val = 0;
+            for (int i = 0; i < AIBits.Length; i++)
+                val |= AIBits[i].Checked ? 1u << i : 0;
+            return val;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -452,24 +474,24 @@ namespace pk3DS
         {
             var sb = new StringBuilder();
             sb.AppendLine("======");
-            sb.AppendLine($"{tr.ID} - {trClass[tr.TrainerClass]} {tr.Name}");
+            sb.Append(tr.ID).Append(" - ").Append(trClass[tr.TrainerClass]).Append(" ").AppendLine(tr.Name);
             sb.AppendLine("======");
-            sb.AppendLine($"Pokemon: {tr.NumPokemon}");
+            sb.Append("Pokemon: ").Append(tr.NumPokemon).AppendLine();
             for (int i = 0; i < tr.NumPokemon; i++)
             {
                 if (tr.Pokemon[i].Shiny)
                     sb.Append("Shiny ");
                 sb.Append(specieslist[tr.Pokemon[i].Species]);
-                sb.Append($" (Lv. {tr.Pokemon[i].Level}) ");
+                sb.Append(" (Lv. ").Append(tr.Pokemon[i].Level).Append(") ");
                 if (tr.Pokemon[i].Item > 0)
-                    sb.Append($"@{itemlist[tr.Pokemon[i].Item]}");
+                    sb.Append("@").Append(itemlist[tr.Pokemon[i].Item]);
 
                 if (tr.Pokemon[i].Nature != 0)
-                    sb.Append($" (Nature: {natures[tr.Pokemon[i].Nature]})");
+                    sb.Append(" (Nature: ").Append(natures[tr.Pokemon[i].Nature]).Append(")");
 
-                sb.Append($" (Moves: {string.Join("/", tr.Pokemon[i].Moves.Select(m => m == 0 ? "(None)" : movelist[m]))})");
-                sb.Append($" IVs: {string.Join("/", tr.Pokemon[i].IVs)}");
-                sb.Append($" EVs: {string.Join("/", tr.Pokemon[i].EVs)}");
+                sb.Append(" (Moves: ").Append(string.Join("/", tr.Pokemon[i].Moves.Select(m => m == 0 ? "(None)" : movelist[m]))).Append(")");
+                sb.Append(" IVs: ").Append(string.Join("/", tr.Pokemon[i].IVs));
+                sb.Append(" EVs: ").Append(string.Join("/", tr.Pokemon[i].EVs));
                 sb.AppendLine();
             }
             return sb.ToString();
@@ -682,11 +704,14 @@ namespace pk3DS
                 if (tr.NumPokemon < NUD_RMin.Value)
                 {
                     for (int p = tr.NumPokemon; p < NUD_RMin.Value; p++)
+                    {
                         tr.Pokemon.Add(new trpoke7
                         {
                             Species = rnd.GetRandomSpecies(avgSpec),
                             Level = avgLevel,
                         });
+                    }
+
                     tr.NumPokemon = (int)NUD_RMin.Value;
                 }
                 if (tr.NumPokemon > NUD_RMax.Value)
@@ -697,11 +722,14 @@ namespace pk3DS
                 if (CHK_6PKM.Checked && ImportantTrainers.Contains(tr.ID))
                 {
                     for (int g = tr.NumPokemon; g < 6; g++)
+                    {
                         tr.Pokemon.Add(new trpoke7
                         {
                             Species = rnd.GetRandomSpecies(avgSpec),
                             Level = avgLevel,
                         });
+                    }
+
                     tr.NumPokemon = 6;
                 }
 
@@ -719,13 +747,12 @@ namespace pk3DS
                         // replaces Megas with another Mega (Dexio and Lysandre in USUM)
                         if (MegaDictionary.Values.Any(z => z.Contains(pk.Item)))
                         {
-                            int species = pk.Species;
-                            int[] mega = GetRandomMega(out species);
+                            int[] mega = GetRandomMega(out int species);
                             pk.Species = species;
                             pk.Item = mega[Util.rand.Next(0, mega.Length)];
                             pk.Form = 0; // allow it to Mega Evolve naturally
                         }
-                        
+
                         // every other pkm
                         else
                         {
@@ -746,8 +773,8 @@ namespace pk3DS
                     if (CHK_MaxDiffPKM.Checked)
                         pk.IVs = new[] {31, 31, 31, 31, 31, 31};
                     if (CHK_MaxAI.Checked)
-                        tr.AI |= 7;
-                    
+                        tr.AI |= (int)(TrainerAI.Basic | TrainerAI.Strong | TrainerAI.Expert | TrainerAI.PokeChange);
+
                     if (CHK_ForceFullyEvolved.Checked && pk.Level >= NUD_ForceFullyEvolved.Value && !FinalEvo.Contains(pk.Species))
                     {
                         int randFinalEvo() => (int)(Util.rnd32() % FinalEvo.Length);
@@ -835,18 +862,11 @@ namespace pk3DS
 
         private void CHK_RandomPKM_CheckedChanged(object sender, EventArgs e)
         {
-            if (!CHK_RandomPKM.Checked)
-                foreach (CheckBox c in new[] { CHK_G1, CHK_G2, CHK_G3, CHK_G4, CHK_G5, CHK_G6, CHK_G7, CHK_L, CHK_E, CHK_BST })
-                {
-                    c.Enabled = false;
-                    c.Checked = false;
-                }
-            else
-                foreach (CheckBox c in new[] { CHK_G1, CHK_G2, CHK_G3, CHK_G4, CHK_G5, CHK_G6, CHK_G7, CHK_L, CHK_E, CHK_BST })
-                {
-                    c.Enabled = true;
-                    c.Checked = true;
-                }
+            foreach (CheckBox c in new[] { CHK_G1, CHK_G2, CHK_G3, CHK_G4, CHK_G5, CHK_G6, CHK_G7, CHK_L, CHK_E, CHK_BST })
+            {
+                c.Enabled = CHK_RandomPKM.Checked;
+                c.Checked = CHK_RandomPKM.Checked;
+            }
         }
 
         private void CHK_RandomClass_CheckedChanged(object sender, EventArgs e)

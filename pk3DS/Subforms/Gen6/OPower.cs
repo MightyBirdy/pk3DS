@@ -1,4 +1,5 @@
-﻿using System;
+﻿using pk3DS.Core;
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -10,12 +11,12 @@ namespace pk3DS
         public OPower()
         {
             InitializeComponent();
-            if (Main.ExeFSPath == null) { Util.Alert("No exeFS code to load."); Close(); }
+            if (Main.ExeFSPath == null) { WinFormsUtil.Alert("No exeFS code to load."); Close(); }
             string[] files = Directory.GetFiles(Main.ExeFSPath);
-            if (!File.Exists(files[0]) || !Path.GetFileNameWithoutExtension(files[0]).Contains("code")) { Util.Alert("No .code.bin detected."); Close(); }
+            if (!File.Exists(files[0]) || !Path.GetFileNameWithoutExtension(files[0]).Contains("code")) { WinFormsUtil.Alert("No .code.bin detected."); Close(); }
             codebin = files[0];
             exefsData = File.ReadAllBytes(codebin);
-            if (exefsData.Length % 0x200 != 0) { Util.Alert(".code.bin not decompressed. Aborting."); Close(); }
+            if (exefsData.Length % 0x200 != 0) { WinFormsUtil.Alert(".code.bin not decompressed. Aborting."); Close(); }
 
             // Fetch Offset
             offset = Util.IndexOfBytes(exefsData, new byte[] { 0x34, 0x39, 0x34, 0x36, 0x31, 0x38, 0x34, 0x35, 0x00 }, 0x400000, 0) + 9;
@@ -23,28 +24,30 @@ namespace pk3DS
 
             // Gather Data
             for (int i = 0; i < powerData.Length; i++)
-                powerData[i] = exefsData.Skip(offset + 22 * i).Take(22).ToArray();
+                powerData[i] = exefsData.Skip(offset + (22 * i)).Take(22).ToArray();
 
             // Prepare View
             for (int i = 0; i < 10; i++) CB_SortOrder.Items.Add(i);
             for (int i = 1; i < powerData.Length; i++) CB_Item.Items.Add(i);
             CB_Item.SelectedIndex = 0;
-            Util.Alert("More research is required for giving S/MAX O-Powers ingame.");
+            WinFormsUtil.Alert("More research is required for giving S/MAX O-Powers ingame.");
         }
 
         private readonly string codebin;
         private readonly int offset;
         private readonly byte[] exefsData;
         private readonly byte[][] powerData = new byte[65][];
-        private readonly string[] powerFlavor = Main.getText(TextName.OPowerFlavor);
+        private readonly string[] powerFlavor = Main.Config.getText(TextName.OPowerFlavor);
 
         private int entry = -1;
+
         private void changeEntry(object sender, EventArgs e)
         {
             setEntry();
             entry = CB_Item.SelectedIndex + 1;
             getEntry();
         }
+
         private void getEntry()
         {
             if (entry < 1) return;
@@ -85,6 +88,7 @@ namespace pk3DS
             NUD_Usability.Value = _01;
             NUD_2.Value = _02;
         }
+
         private void setEntry()
         {
             if (entry < 1) return;
@@ -101,8 +105,7 @@ namespace pk3DS
             powerData[entry][0x4] = otherCost;
             powerData[entry][0xE] = stage;
             powerData[entry][0xF] = lvlup;
-
-            Array.Copy(powerData[entry], 0x12, BitConverter.GetBytes(efficacy), 0, 2);
+            BitConverter.GetBytes(efficacy).CopyTo(powerData[entry], 0x12);
             powerData[entry][0x14] = duration; // sbyte FF = -1 (no duration?)
 
             byte usability = (byte)NUD_Usability.Value;
@@ -116,7 +119,7 @@ namespace pk3DS
             setEntry();
             // Copy data back to storage
             for (int i = 0; i < powerData.Length; i++)
-                Array.Copy(powerData[i], 0, exefsData, offset + i * powerData[i].Length, powerData[i].Length);
+                Array.Copy(powerData[i], 0, exefsData, offset + (i * powerData[i].Length), powerData[i].Length);
             if (ModifierKeys != Keys.Control)
                 File.WriteAllBytes(codebin, exefsData);
         }

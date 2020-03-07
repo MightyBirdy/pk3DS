@@ -1,7 +1,9 @@
-﻿using System;
+﻿using pk3DS.Core;
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using pk3DS.Core.Randomizers;
 
 namespace pk3DS
 {
@@ -183,8 +185,8 @@ namespace pk3DS
             "Kyurem-White - 1",
             "Kyurem-Black - 2",
             "",
-            "Keldeo-Usual - 0",
-            "Keldeo-Resolution - 1",
+            "Keldeo-Ordinary - 0",
+            "Keldeo-Resolute - 1",
             "",
             "Meloetta-Aria - 0",
             "Meloetta-Pirouette - 1",
@@ -205,7 +207,7 @@ namespace pk3DS
             "Floette-Yellow - 1",
             "Floette-Orange - 2",
             "Floette-Blue - 3",
-            "Floette-Wite - 4",
+            "Floette-White - 4",
             "Floette-Eternal - 5",
             "",
             "Florges-Red - 0",
@@ -214,19 +216,19 @@ namespace pk3DS
             "Florges-Blue - 3",
             "Florges-White - 4",
             "",
-            "Furfrou- Natural - 0",
-            "Furfrou- Heart - 1",
-            "Furfrou- Star - 2",
-            "Furfrou- Diamond - 3",
-            "Furfrou- Deputante - 4",
-            "Furfrou- Matron - 5",
-            "Furfrou- Dandy - 6",
-            "Furfrou- La Reine- 7",
-            "Furfrou- Kabuki - 8",
-            "Furfrou- Pharaoh - 9",
+            "Furfrou-Natural - 0",
+            "Furfrou-Heart - 1",
+            "Furfrou-Star - 2",
+            "Furfrou-Diamond - 3",
+            "Furfrou-Deputante - 4",
+            "Furfrou-Matron - 5",
+            "Furfrou-Dandy - 6",
+            "Furfrou-La Reine- 7",
+            "Furfrou-Kabuki - 8",
+            "Furfrou-Pharaoh - 9",
             "",
-            "Aegislash- Shield - 0",
-            "Aegislash- Blade - 0",
+            "Aegislash-Shield - 0",
+            "Aegislash-Blade - 0",
             "",
             "Vivillon-Icy Snow - 0",
             "Vivillon-Polar - 1",
@@ -249,12 +251,17 @@ namespace pk3DS
             "Vivillon-Fancy - 18",
             "Vivillon-Poké Ball - 19",
             "",
-            "Pumpkaboo/Gourgeist-Small - 0",
-            "Pumpkaboo/Gourgeist-Average - 1",
-            "Pumpkaboo/Gourgeist-Large - 2",
-            "Pumpkaboo/Gourgeist-Super - 3",
+            "Pumpkaboo-Small - 0",
+            "Pumpkaboo-Average - 1",
+            "Pumpkaboo-Large - 2",
+            "Pumpkaboo-Super - 3",
             "",
-            "Hoopa-Normal - 0",
+            "Gourgeist-Small - 0",
+            "Gourgeist-Average - 1",
+            "Gourgeist-Large - 2",
+            "Gourgeist-Super - 3",
+            "",
+            "Hoopa-Confined - 0",
             "Hoopa-Unbound - 1",
             "",
             "Megas-Normal - 0",
@@ -263,12 +270,9 @@ namespace pk3DS
             };
             RSWE_Load();
             openQuick(Directory.GetFiles("encdata"));
-
-            string[] personalList = Directory.GetFiles("personal");
-            personal = new byte[personalList.Length][];
-            for (int i = 0; i < personalList.Length; i++)
-                personal[i] = File.ReadAllBytes("personal" + Path.DirectorySeparatorChar + i.ToString("000") + ".bin");
+            RandSettings.GetFormSettings(this, GB_Tweak.Controls);
         }
+
         private readonly ComboBox[] spec;
         private readonly NumericUpDown[] min;
         private readonly NumericUpDown[] max;
@@ -282,11 +286,9 @@ namespace pk3DS
         private string[] encdatapaths;
         private string[] filepaths;
 
-        readonly byte[][] personal;
-
         private void RSWE_Load()
         {
-            specieslist = Main.getText(TextName.SpeciesNames);
+            specieslist = Main.Config.getText(TextName.SpeciesNames);
             specieslist[0] = "---";
 
             foreach (string s in formlist)
@@ -304,11 +306,8 @@ namespace pk3DS
             //Preload Tabs
             PreloadTabs();
         }
-        internal static Random rand = new Random();
-        internal static uint rnd32()
-        {
-            return (uint)rand.Next(1 << 30) << 2 | (uint)rand.Next(1 << 2);
-        }
+
+        internal static uint rnd32() => Util.rnd32();
 
         private void openQuick(string[] encdata)
         {
@@ -316,7 +315,7 @@ namespace pk3DS
             Array.Sort(encdatapaths);
             filepaths = new string[encdatapaths.Length - 2];
             Array.Copy(encdatapaths, 2, filepaths, 0, filepaths.Length);
-            metRS_00000 = Main.getText(TextName.metlist_000000);
+            metRS_00000 = Main.Config.getText(TextName.metlist_000000);
             zonedata = File.ReadAllBytes(encdatapaths[0]);
             decStorage = File.ReadAllBytes(encdatapaths[1]);
             LocationNames = new string[filepaths.Length];
@@ -325,8 +324,8 @@ namespace pk3DS
                 string name = Path.GetFileNameWithoutExtension(filepaths[f]);
 
                 int LocationNum = Convert.ToInt16(name.Substring(4, name.Length - 4));
-                int indNum = LocationNum * 56 + 0x1C;
-                string LocationName = metRS_00000[zonedata[indNum] + 0x100 * (zonedata[indNum + 1] & 1)];
+                int indNum = (LocationNum * 56) + 0x1C;
+                string LocationName = metRS_00000[zonedata[indNum] + (0x100 * (zonedata[indNum + 1] & 1))];
                 LocationNames[f] = LocationNum.ToString("000") + " - " + LocationName;
             }
             CB_LocationID.DataSource = LocationNames;
@@ -362,7 +361,7 @@ namespace pk3DS
             for (int i = 0; i < max.Length; i++)
             {
                 // Fetch Data
-                Array.Copy(ed, offset + i * 4, slot, 0, 4);
+                Array.Copy(ed, offset + (i * 4), slot, 0, 4);
                 int[] data = pslot(slot);
 
                 // Load Data
@@ -382,6 +381,7 @@ namespace pk3DS
             File.WriteAllBytes(Path.Combine("encounter_ao", loc.ToString("000") + CB_LocationID.SelectedIndex.ToString("000") + ".bin"), edata);
             #endif
         }
+
         private int[] pslot(byte[] slot) // Parse Slot to Bytes
         {
             int index = BitConverter.ToUInt16(slot, 0) & 0x7FF;
@@ -395,6 +395,7 @@ namespace pk3DS
             data[3] = hi;
             return data;
         }
+
         private string parseslot(byte[] slot)
         {
             int index = BitConverter.ToUInt16(slot, 0) & 0x7FF;
@@ -406,6 +407,7 @@ namespace pk3DS
             if (form > 0) species += "-" + form;
             return species + ',' + min + ',' + max + ',';
         }
+
         private byte[] MakeSlotData(int species, int f, int lo, int hi)
         {
             byte[] data = new byte[4];
@@ -414,6 +416,7 @@ namespace pk3DS
             data[3] = (byte)hi;
             return data;
         }
+
         private byte[] ConcatArrays(byte[] b1, byte[] b2)
         {
             byte[] concat = new byte[b1.Length + b2.Length];
@@ -425,23 +428,25 @@ namespace pk3DS
         private void CB_LocationID_SelectedIndexChanged(object sender, EventArgs e)
         {
             int f = CB_LocationID.SelectedIndex;
-            FileStream InStream = File.OpenRead(filepaths[f]);
-            BinaryReader br = new BinaryReader(InStream);
-            br.BaseStream.Seek(0x10, SeekOrigin.Begin);
-            int offset = br.ReadInt32() + 0xE;
-            int ofs2 = br.ReadInt32();
-            int length = ofs2 - offset;
-            if (length < 0xF6) //no encounters in this map
+
+            int offset;
+            using (var s = File.OpenRead(filepaths[f]))
+            using (var br = new BinaryReader(s))
             {
-                ClearData();
-                br.Close();
-                return;
+                br.BaseStream.Seek(0x10, SeekOrigin.Begin);
+                offset = br.ReadInt32() + 0xE;
+                int ofs2 = br.ReadInt32();
+                int length = ofs2 - offset;
+                if (length < 0xF6) //no encounters in this map
+                {
+                    ClearData();
+                    return;
+                }
             }
-            br.Close();
 
             byte[] filedata = File.ReadAllBytes(filepaths[f]);
 
-            byte[] encounterdata = new Byte[0xF6];
+            byte[] encounterdata = new byte[0xF6];
             Array.Copy(filedata, offset, encounterdata, 0, 0xF6);
             parse(encounterdata);
         }
@@ -465,12 +470,14 @@ namespace pk3DS
             }
             return false;
         }
+
         private void PreloadTabs()
         {
             for (int i = 0; i < TabControl_EncounterData.TabPages.Count; i++)
                 TabControl_EncounterData.TabPages[i].Show();
             TabControl_EncounterData.TabPages[0].Show();
         }
+
         private void ClearData()
         {
             for (int i = 0; i < max.Length; i++)
@@ -482,6 +489,7 @@ namespace pk3DS
                 max[i].Value = 0;
             }
         }
+
         private byte[] MakeEncounterData()
         {
             byte[] ed = new byte[0x102];
@@ -489,10 +497,11 @@ namespace pk3DS
             for (int i = 0; i < max.Length; i++)
             {
                 byte[] data = MakeSlotData(spec[i].SelectedIndex, (int)form[i].Value, (int)min[i].Value, (int)max[i].Value);
-                Array.Copy(data, 0, ed, offset + i * 4, 4);
+                Array.Copy(data, 0, ed, offset + (i * 4), 4);
             }
             return ed;
         }
+
         private string GetEncDataString()
         {
             string toret = "======" + Environment.NewLine;
@@ -545,6 +554,7 @@ namespace pk3DS
             string path = savetxt.FileName;
             File.WriteAllText(path, toret);
         }
+
         private void B_Save_Click(object sender, EventArgs e)
         {
             int f = CB_LocationID.SelectedIndex;
@@ -557,12 +567,13 @@ namespace pk3DS
             }
             else
             {
-                FileStream InStream = File.OpenRead(filepaths[f]);
-                BinaryReader br = new BinaryReader(InStream);
-                br.BaseStream.Seek(0x10, SeekOrigin.Begin);
-                int offset = br.ReadInt32() + 0xe;
-                // int length = (int)br.BaseStream.Length - offset;
-                br.Close();
+                int offset;
+                using (var s = File.OpenRead(filepaths[f]))
+                using (var br = new BinaryReader(s))
+                {
+                    br.BaseStream.Seek(0x10, SeekOrigin.Begin);
+                    offset = br.ReadInt32() + 0xE;
+                }
                 byte[] filedata = File.ReadAllBytes(filepaths[f]);
                 byte[] preoffset;
                 if (offset < filedata.Length)
@@ -592,18 +603,31 @@ namespace pk3DS
         // Randomization
         private void B_Randomize_Click(object sender, EventArgs e)
         {
-            if (Util.Prompt(MessageBoxButtons.YesNo, "Randomize all? Cannot undo.", "Double check Randomization settings @ Horde Tab.") != DialogResult.Yes) return;
+            if (WinFormsUtil.Prompt(MessageBoxButtons.YesNo, "Randomize all? Cannot undo.", "Double check Randomization settings in the Horde tab.") != DialogResult.Yes) return;
             
             Enabled = false;
 
             // Calculate % diff we will apply to each level
-            decimal leveldiff = (100 + NUD_LevelAmp.Value) / 100;
+            decimal leveldiff = NUD_LevelAmp.Value;
 
             // Nonrepeating List Start
-            int[] sL = Randomizer.getSpeciesList(CHK_G1.Checked, CHK_G2.Checked, CHK_G3.Checked,
-                CHK_G4.Checked, CHK_G5.Checked, CHK_G6.Checked, CHK_L.Checked, CHK_E.Checked);
+            var rand = new SpeciesRandomizer(Main.Config)
+            {
+                G1 = CHK_G1.Checked,
+                G2 = CHK_G2.Checked,
+                G3 = CHK_G3.Checked,
+                G4 = CHK_G4.Checked,
+                G5 = CHK_G5.Checked,
+                G6 = CHK_G6.Checked,
 
-            int ctr = 0;
+                L = CHK_L.Checked,
+                E = CHK_E.Checked,
+                Shedinja = false,
+
+                rBST = CHK_BST.Checked,
+            };
+            rand.Initialize();
+
             int[] slotArray = Enumerable.Range(0, max.Length).Select(a => a).ToArray();
 
             for (int i = 0; i < CB_LocationID.Items.Count; i++) // for every location
@@ -627,44 +651,34 @@ namespace pk3DS
 
                 // At most 18, but don't chew if there's only a few slots.
                 int cons = list.Count(a => a != 0);
-                int[] RandomList = new int[cons > 18 ? 18 - cons / 8 : cons];
+                int[] RandomList = new int[cons > 18 ? 18 - (cons / 8) : cons];
 
                 // Fill Location List
-                if (!CHK_BST.Checked)
-                    for (int z = 0; z < RandomList.Length; z++)
-                        RandomList[z] = Randomizer.getRandomSpecies(ref sL, ref ctr);
-                else
-                {
-                    int oldBST = 0;
-                    for (int s = 0; s < max.Length; s++)
-                        if (spec[s].SelectedIndex > 0)
-                        { oldBST = personal[spec[s + 2].SelectedIndex].Take(6).Sum(b => (ushort)b); break; }
-
-                    for (int z = 0; z < RandomList.Length; z++)
-                    {
-                        int species = Randomizer.getRandomSpecies(ref sL, ref ctr);
-                        int newBST = personal[species].Take(6).Sum(b => (ushort)b);
-                        while (!(newBST * 4 / 5 < oldBST && newBST * 6 / 5 > oldBST))
-                        { species = sL[rand.Next(1, sL.Length)]; newBST = personal[species].Take(6).Sum(b => (ushort)b); }
-                        RandomList[z] = species;
-                    }
-                }
+                for (int s = 0; s < RandomList.Length; s++)
+                    RandomList[s] = rand.GetRandomSpecies(spec[s].SelectedIndex);
 
                 // Assign Slots
                 while (used < RandomList.Distinct().Count() || used > 18) // Can just arbitrarily assign slots.
                 {
-                    int ctrSingle = 0;
                     Util.Shuffle(slotArray);
                     for (int s = 0; s < max.Length; s++)
                     {
                         int slot = slotArray[s];
                         if (spec[slot].SelectedIndex != 0) // If the slot is in use
-                            list[slot] = Randomizer.getRandomSpecies(ref RandomList, ref ctrSingle);
+                            list[slot] = RandomList[Util.rand.Next(0, RandomList.Length)];
                     }
                     used = countUnique(list);
                     if (used != RandomList.Length)
                         ShuffleSlots(ref list, RandomList.Length);
                     used = countUnique(list);
+                }
+                // If Distinct Hordes are selected, homogenize
+                int hordeslot = 0;
+                if (CHK_HomogeneousHordes.Checked)
+                for (int slot = max.Length - 15; slot < max.Length; slot++)
+                {
+                    list[slot] = list[slot - (hordeslot % 5)];
+                    hordeslot++;
                 }
 
                 // Fill Slots
@@ -678,8 +692,9 @@ namespace pk3DS
                 B_Save_Click(sender, e);
             }
             Enabled = true;
-            Util.Alert("Randomized!");
+            WinFormsUtil.Alert("Randomized all Wild Encounters according to specification!", "Press the Dump Tables button to view the new Wild Encounter information!");
         }
+
         private int countUnique(int[] list)
         {
             int used = 0;
@@ -694,6 +709,7 @@ namespace pk3DS
             used += list.Skip(46).Take(15).Distinct().Count(a => a != 0);
             return used;
         }
+
         private void setRandomForm(int slot, int species)
         {
             if (CHK_MegaForm.Checked && Main.SpeciesStat[species].FormeCount > 1 && Legal.Mega_ORAS.Contains((ushort)species))
@@ -721,6 +737,7 @@ namespace pk3DS
             else
                 form[slot].Value = 0;
         }
+
         private void ShuffleSlots(ref int[] list, int slC)
         {
             int[] input = (int[])list.Clone();
@@ -769,6 +786,7 @@ namespace pk3DS
                 }
             }
         }
+
         private void swap(ref int a1, ref int a2)
         {
             var s1 = a1; var s2 = a2;
@@ -777,11 +795,13 @@ namespace pk3DS
 
         private void modifyLevels(object sender, EventArgs e)
         {
+            if (WinFormsUtil.Prompt(MessageBoxButtons.YesNo, "Modify all current Level ranges?", "Cannot undo.") != DialogResult.Yes) return;
+
             // Disable Interface while modifying
             Enabled = false;
 
             // Calculate % diff we will apply to each level
-            decimal leveldiff = (100 + NUD_LevelAmp.Value) / 100;
+            decimal leveldiff = NUD_LevelAmp.Value;
 
             // Cycle through each location to modify levels
             for (int i = 0; i < CB_LocationID.Items.Count; i++) // for every location
@@ -791,13 +811,20 @@ namespace pk3DS
 
                 // Amp Levels
                 for (int l = 0; l < max.Length; l++)
-                    min[l].Value = max[l].Value = max[l].Value <= 1 ? max[l].Value : Math.Max(1, Math.Min(100, (int)(leveldiff * max[l].Value)));
+                    if (min[l].Value > 1)
+                        min[l].Value = max[l].Value = Randomizer.getModifiedLevel((int)max[l].Value, leveldiff);
 
                 // Save Changes
                 B_Save_Click(sender, e);
             }
             // Enable Interface... modification complete.
             Enabled = true;
+            WinFormsUtil.Alert("Modified all Level ranges according to specification!", "Press the Dump Tables button to view the new Level ranges!");
+        }
+
+        private void RSWE_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            RandSettings.SetFormSettings(this, GB_Tweak.Controls);
         }
     }
 }

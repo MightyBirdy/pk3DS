@@ -1,6 +1,6 @@
 ﻿namespace pk3DS
 {
-    partial class ToolsUI
+    sealed partial class ToolsUI
     {
         /// <summary>
         /// Required designer variable.
@@ -39,18 +39,23 @@
             this.B_Reset = new System.Windows.Forms.Button();
             this.CHK_Delete = new System.Windows.Forms.CheckBox();
             this.pBar1 = new System.Windows.Forms.ProgressBar();
+            this.NUD_Padding = new System.Windows.Forms.NumericUpDown();
+            this.L_Padding = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.PB_BCLIM)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.NUD_Padding)).BeginInit();
             this.SuspendLayout();
             // 
             // PB_Unpack
             // 
+            this.PB_Unpack.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.PB_Unpack.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.PB_Unpack.Location = new System.Drawing.Point(12, 25);
             this.PB_Unpack.Name = "PB_Unpack";
             this.PB_Unpack.Size = new System.Drawing.Size(300, 67);
             this.PB_Unpack.TabIndex = 0;
-            this.PB_Unpack.MouseLeave += new System.EventHandler(this.dropLeave);
-            this.PB_Unpack.MouseHover += new System.EventHandler(this.dropHover);
+            this.PB_Unpack.MouseLeave += new System.EventHandler(this.DropLeave);
+            this.PB_Unpack.MouseHover += new System.EventHandler(this.DropHover);
             // 
             // L_DARCMini
             // 
@@ -82,6 +87,8 @@
             // 
             // PB_Repack
             // 
+            this.PB_Repack.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.PB_Repack.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.PB_Repack.Location = new System.Drawing.Point(168, 124);
             this.PB_Repack.Name = "PB_Repack";
@@ -147,12 +154,41 @@
             this.pBar1.Size = new System.Drawing.Size(300, 12);
             this.pBar1.TabIndex = 11;
             // 
+            // NUD_Padding
+            // 
+            this.NUD_Padding.Hexadecimal = true;
+            this.NUD_Padding.Location = new System.Drawing.Point(118, 164);
+            this.NUD_Padding.Maximum = new decimal(new int[] {
+            65536,
+            0,
+            0,
+            0});
+            this.NUD_Padding.Name = "NUD_Padding";
+            this.NUD_Padding.Size = new System.Drawing.Size(44, 20);
+            this.NUD_Padding.TabIndex = 12;
+            this.NUD_Padding.Value = new decimal(new int[] {
+            4,
+            0,
+            0,
+            0});
+            // 
+            // L_Padding
+            // 
+            this.L_Padding.Location = new System.Drawing.Point(12, 164);
+            this.L_Padding.Name = "L_Padding";
+            this.L_Padding.Size = new System.Drawing.Size(100, 20);
+            this.L_Padding.TabIndex = 13;
+            this.L_Padding.Text = "GARC Padding:";
+            this.L_Padding.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
             // ToolsUI
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(324, 362);
+            this.Controls.Add(this.L_Padding);
+            this.Controls.Add(this.NUD_Padding);
             this.Controls.Add(this.pBar1);
             this.Controls.Add(this.CHK_Delete);
             this.Controls.Add(this.B_Reset);
@@ -169,8 +205,9 @@
             this.Name = "ToolsUI";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Tools";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.closeForm);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CloseForm);
             ((System.ComponentModel.ISupportInitialize)(this.PB_BCLIM)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.NUD_Padding)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -189,5 +226,7 @@
         private System.Windows.Forms.Button B_Reset;
         private System.Windows.Forms.CheckBox CHK_Delete;
         private System.Windows.Forms.ProgressBar pBar1;
+        private System.Windows.Forms.NumericUpDown NUD_Padding;
+        private System.Windows.Forms.Label L_Padding;
     }
 }
